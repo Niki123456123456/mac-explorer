@@ -221,6 +221,13 @@ impl egui_dock::TabViewer for AppData {
                                         .status();
                                     ui.close_menu();
                                 }
+                                if ui.button("make executable").clicked() {
+                                    std::process::Command::new("chmod")
+                                        .arg("755")
+                                        .arg(entry.path.clone())
+                                        .status();
+                                    ui.close_menu();
+                                }
                                 if ui.button("zed").clicked() {
                                     std::process::Command::new("zed")
                                         .arg(entry.path.clone())
