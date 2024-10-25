@@ -3,6 +3,10 @@ name = "mac-explorer"
 version = "0.1.0"
 edition = "2021"
 
+[package.metadata.bundle]
+name = "mac-explorer"
+identifier = "com.niklasnordkamp.macexplorer"
+
 
 [dependencies]
 egui = "0.29"
