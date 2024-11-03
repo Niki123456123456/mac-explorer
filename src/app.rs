@@ -1,11 +1,10 @@
-use std::path::Path;
+use std::{fs, path::Path};
 
 use egui::{Label, Sense, Widget};
 use egui_dock::{DockArea, DockState, NodeIndex, Style, SurfaceIndex};
+use serde::de;
 
 use crate::{actions::actions, tab::Tab, tabviewer::AppData};
-
-
 
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)]
@@ -109,6 +108,27 @@ impl eframe::App for App {
                 ));
             });
         });
+
+        if let Some((source_path, files)) = &self.data.drag_paths {
+            if let Some(dest_path) = &self.data.drop_path {
+                if source_path != dest_path {
+                    let command = ctx.input(|i| i.modifiers.command);
+                    for (path, file_name) in files.iter() {
+                        if command {
+                            let _ = fs::copy(path, Path::new(dest_path).join(file_name));
+                        } else {
+                            let _ = fs::rename(path, Path::new(dest_path).join(file_name));
+                        }
+                        
+                        //println!("move {:?} {:?} {:?} ", path, Path::new(dest_path).join(file_name), result);
+                    }
+                }
+                for ((_,_), tab) in self.tabs.iter_all_tabs_mut() {
+                    tab.refresh_hard(tab.path.clone());
+                }
+                self.data.drag_paths = None;
+                self.data.drop_path = None;
+            }
+        }
     }
 }
-

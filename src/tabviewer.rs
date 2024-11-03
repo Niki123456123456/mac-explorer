@@ -18,6 +18,9 @@ pub struct AppData {
     pub added_nodes: Vec<(SurfaceIndex, NodeIndex)>,
     #[serde(skip)]
     pub actions: Vec<Action>,
+    #[serde(skip)]
+    pub drag_paths: Option<(String, Vec<(String, String)>)>,
+    pub drop_path: Option<String>,
 }
 
 impl egui_dock::TabViewer for AppData {
@@ -137,7 +140,7 @@ impl egui_dock::TabViewer for AppData {
                                     .cursor_at_end(true)
                                     .desired_width(ui.available_width())
                                     .show(ui);
-                                
+
                                 if resp.response.lost_focus()
                                     && ui.input(|i| i.key_pressed(egui::Key::Enter))
                                 {
@@ -247,6 +250,27 @@ impl egui_dock::TabViewer for AppData {
                                         }
                                     }
                                 });
+                                if resp.contains_pointer()
+                                    && ctx.input(|i| i.pointer.primary_pressed()) && !entries.is_empty()
+                                {
+                                    self.drag_paths = Some((tab.path.to_string(),
+                                        entries
+                                            .iter()
+                                            .enumerate()
+                                            .filter(|(i, x)| tab.selected_entries.contains(i))
+                                            .map(|(i, x)| (x.path.to_string(), x.file_name.to_string()))
+                                            .collect(),
+                                    ));
+                                    //println!("drag");
+                                }
+                                // if resp.contains_pointer()
+                                //     && self.drag_paths.is_some()
+                                //     && ctx.input(|i| i.pointer.primary_released())
+                                // {
+                                //     self.drop_path = Some(tab.path.to_string());
+                                //     tab.state.relead = true;
+                                //     println!("drop");
+                                // }
                             });
                         }
                     }
@@ -258,7 +282,14 @@ impl egui_dock::TabViewer for AppData {
         }
 
         if let Ok(entries) = &tab.entries {
-            let resp =  ui.interact(Rect::from_points(&[ui.next_widget_position(), ui.next_widget_position() + ui.available_size()]), Id::new("post table"), Sense::click_and_drag());
+            let resp = ui.interact(
+                Rect::from_points(&[
+                    ui.next_widget_position(),
+                    ui.next_widget_position() + ui.available_size(),
+                ]),
+                Id::new(format!("{:? }post table", tab.id)),
+                Sense::click_and_drag(),
+            );
             let is_main = tab.selected_entries.is_empty();
             let action_entries: Vec<_> = if is_main {
                 vec![tab.info.as_ref().unwrap()]
@@ -282,77 +313,104 @@ impl egui_dock::TabViewer for AppData {
                     }
                 }
             });
+
+            if resp.contains_pointer()
+                && self.drag_paths.is_some()
+                && ui.input(|i| i.pointer.primary_released())
+            {
+                self.drop_path = Some(tab.path.to_string());
+                tab.state.relead = true;
+                //println!("drop");
+            }
         }
 
-
         if let Some(zip) = &mut tab.state.extract_zip_archive {
-            egui::Window::new("extract zip archive").default_width(ui.available_width()).show(ui.ctx(), |ui| {
-                ui.vertical(|ui| {
-                    ui.label(format!("source: {}", zip.source));
-                    ui.horizontal(|ui| {
-                        ui.label("target:");
-                        let resp = TextEdit::singleline(&mut zip.target)
-                            .return_key(Some(egui::KeyboardShortcut::new(
-                                Modifiers::NONE,
-                                Key::Enter,
-                            )))
-                            .cursor_at_end(true)
-                            .desired_width(ui.available_width())
-                            .show(ui);
-                        if resp.response.lost_focus()
-                            && ui.input(|i| i.key_pressed(egui::Key::Enter))
-                        {
-                            let contents = std::fs::read(zip.source.clone()).unwrap();
-                            let _ = zip_extract::extract(std::io::Cursor::new(contents),  Path::new(&zip.target), zip.strip_toplevel);
-                            tab.state.relead = true;
-                        }
+            egui::Window::new("extract zip archive")
+                .default_width(ui.available_width())
+                .show(ui.ctx(), |ui| {
+                    ui.vertical(|ui| {
+                        ui.label(format!("source: {}", zip.source));
+                        ui.horizontal(|ui| {
+                            ui.label("target:");
+                            let resp = TextEdit::singleline(&mut zip.target)
+                                .return_key(Some(egui::KeyboardShortcut::new(
+                                    Modifiers::NONE,
+                                    Key::Enter,
+                                )))
+                                .cursor_at_end(true)
+                                .desired_width(ui.available_width())
+                                .show(ui);
+                            if resp.response.lost_focus()
+                                && ui.input(|i| i.key_pressed(egui::Key::Enter))
+                            {
+                                let contents = std::fs::read(zip.source.clone()).unwrap();
+                                let _ = zip_extract::extract(
+                                    std::io::Cursor::new(contents),
+                                    Path::new(&zip.target),
+                                    zip.strip_toplevel,
+                                );
+                                tab.state.relead = true;
+                            }
+                        });
+                        ui.checkbox(&mut zip.strip_toplevel, "strip toplevel");
                     });
-                    ui.checkbox(&mut zip.strip_toplevel, "strip toplevel");
                 });
-            });
             if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
                 tab.state.extract_zip_archive = None;
             }
         }
         if let Some(zip) = &mut tab.state.zip_dir {
-            egui::Window::new("create zip archive").default_width(ui.available_width()).show(ui.ctx(), |ui| {
-                ui.vertical(|ui| {
-                    ui.label(format!("source: {}", zip.source));
-                    ui.horizontal(|ui| {
-                        ui.label("target:");
-                        let resp = TextEdit::singleline(&mut zip.target)
-                            .return_key(Some(egui::KeyboardShortcut::new(
-                                Modifiers::NONE,
-                                Key::Enter,
-                            )))
-                            .cursor_at_end(true)
-                            .desired_width(ui.available_width())
-                            .show(ui);
-                        if resp.response.lost_focus()
-                            && ui.input(|i| i.key_pressed(egui::Key::Enter))
-                        {
-                            let _ = crate::zip::zip_dir(Path::new(&zip.source), Path::new(&zip.target), zip.method);
-                            tab.state.relead = true;
-                        }
-                    });
-                    egui::ComboBox::from_label("compression method")
-                    .selected_text(&zip.method.to_string())
-                    .show_ui(ui, |ui| {
-                        ui.selectable_value(&mut zip.method, zip::CompressionMethod::Stored, zip::CompressionMethod::Stored.to_string());
-                        ui.selectable_value(&mut zip.method, zip::CompressionMethod::Deflated, zip::CompressionMethod::Deflated.to_string());
-                        // ui.selectable_value(&mut zip.method, zip::CompressionMethod::Bzip2, zip::CompressionMethod::Bzip2.to_string());
-                        // ui.selectable_value(&mut zip.method, zip::CompressionMethod::Zstd, zip::CompressionMethod::Zstd.to_string());
-                        // ui.selectable_value(&mut zip.method, zip::CompressionMethod::Lzma, zip::CompressionMethod::Lzma.to_string());
-                        // ui.selectable_value(&mut zip.method, zip::CompressionMethod::Xz, zip::CompressionMethod::Xz.to_string());
+            egui::Window::new("create zip archive")
+                .default_width(ui.available_width())
+                .show(ui.ctx(), |ui| {
+                    ui.vertical(|ui| {
+                        ui.label(format!("source: {}", zip.source));
+                        ui.horizontal(|ui| {
+                            ui.label("target:");
+                            let resp = TextEdit::singleline(&mut zip.target)
+                                .return_key(Some(egui::KeyboardShortcut::new(
+                                    Modifiers::NONE,
+                                    Key::Enter,
+                                )))
+                                .cursor_at_end(true)
+                                .desired_width(ui.available_width())
+                                .show(ui);
+                            if resp.response.lost_focus()
+                                && ui.input(|i| i.key_pressed(egui::Key::Enter))
+                            {
+                                let _ = crate::zip::zip_dir(
+                                    Path::new(&zip.source),
+                                    Path::new(&zip.target),
+                                    zip.method,
+                                );
+                                tab.state.relead = true;
+                            }
+                        });
+                        egui::ComboBox::from_label("compression method")
+                            .selected_text(&zip.method.to_string())
+                            .show_ui(ui, |ui| {
+                                ui.selectable_value(
+                                    &mut zip.method,
+                                    zip::CompressionMethod::Stored,
+                                    zip::CompressionMethod::Stored.to_string(),
+                                );
+                                ui.selectable_value(
+                                    &mut zip.method,
+                                    zip::CompressionMethod::Deflated,
+                                    zip::CompressionMethod::Deflated.to_string(),
+                                );
+                                // ui.selectable_value(&mut zip.method, zip::CompressionMethod::Bzip2, zip::CompressionMethod::Bzip2.to_string());
+                                // ui.selectable_value(&mut zip.method, zip::CompressionMethod::Zstd, zip::CompressionMethod::Zstd.to_string());
+                                // ui.selectable_value(&mut zip.method, zip::CompressionMethod::Lzma, zip::CompressionMethod::Lzma.to_string());
+                                // ui.selectable_value(&mut zip.method, zip::CompressionMethod::Xz, zip::CompressionMethod::Xz.to_string());
+                            });
                     });
                 });
-            });
             if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
                 tab.state.zip_dir = None;
             }
         }
 
-       
         if tab.state.relead {
             tab.refresh_hard(tab.path.clone());
         }
