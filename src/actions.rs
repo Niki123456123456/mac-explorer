@@ -83,6 +83,14 @@ pub fn actions() -> Vec<Action> {
     actions.push(Action::constant("add dir", Restriction::Main, |e, s|{
         s.add_entry = Some(("".into(), true));
     }));
+    actions.push(Action::new(|e| format!("copy {}",e[0].file_name), |e, m| !m && e.len() == 1, |e, s|{
+        let mut ctx: clipboard::ClipboardContext = clipboard::ClipboardProvider::new().unwrap();
+        clipboard::ClipboardProvider::set_contents(&mut ctx, e.file_name.to_string()).unwrap();
+    }));
+    actions.push(Action::new(|e| format!("copy path"), |e, m| !m && e.len() == 1, |e, s|{
+        let mut ctx: clipboard::ClipboardContext = clipboard::ClipboardProvider::new().unwrap();
+        clipboard::ClipboardProvider::set_contents(&mut ctx, e.path.to_string()).unwrap();
+    }));
     actions.push(Action::open_with(
         "Visual Studio Code",
         "vscode",

@@ -5,7 +5,7 @@ use crate::{
 };
 use std::{borrow::Borrow, path::Path};
 
-use egui::{Key, Label, Modifiers, PointerButton, Sense, TextEdit, Widget};
+use egui::{Id, Key, Label, Modifiers, PointerButton, Rect, Sense, TextEdit, Widget};
 use egui_dock::{DockArea, DockState, NodeIndex, Style, SurfaceIndex, TabIndex};
 use egui_extras::{Column, TableBuilder};
 
@@ -257,6 +257,34 @@ impl egui_dock::TabViewer for AppData {
             }
         }
 
+        if let Ok(entries) = &tab.entries {
+            let resp =  ui.interact(Rect::from_points(&[ui.next_widget_position(), ui.next_widget_position() + ui.available_size()]), Id::new("post table"), Sense::click_and_drag());
+            let is_main = tab.selected_entries.is_empty();
+            let action_entries: Vec<_> = if is_main {
+                vec![tab.info.as_ref().unwrap()]
+            } else {
+                entries
+                    .iter()
+                    .enumerate()
+                    .filter(|(i, x)| tab.selected_entries.contains(i))
+                    .map(|(i, x)| x)
+                    .collect()
+            };
+            resp.context_menu(|ui| {
+                for action in self.actions.iter() {
+                    if (action.can_execute)(&action_entries, is_main) {
+                        if ui.button((action.name)(&action_entries)).clicked() {
+                            for entry in action_entries.iter() {
+                                (action.execute)(&entry, &mut tab.state);
+                            }
+                            ui.close_menu();
+                        }
+                    }
+                }
+            });
+        }
+
+       
         if tab.state.relead {
             tab.refresh_hard(tab.path.clone());
         }
