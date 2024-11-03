@@ -12,6 +12,7 @@ impl<F> Execute for F where F: Fn(&FileEntry, &mut ActionState) {}
 #[derive(Default, Debug)]
 pub struct ActionState {
     pub relead: bool,
+    pub add_entry : Option<(String, bool)>,
 }
 
 pub struct Action {
@@ -76,7 +77,12 @@ pub fn actions() -> Vec<Action> {
                                        ui.close_menu();
                                    }
     */
-
+    actions.push(Action::constant("add file",Restriction::Main, |e, s|{
+        s.add_entry = Some(("".into(), false));
+    }));
+    actions.push(Action::constant("add dir", Restriction::Main, |e, s|{
+        s.add_entry = Some(("".into(), true));
+    }));
     actions.push(Action::open_with(
         "Visual Studio Code",
         "vscode",

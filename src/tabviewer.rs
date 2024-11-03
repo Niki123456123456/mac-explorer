@@ -124,6 +124,39 @@ impl egui_dock::TabViewer for AppData {
                     });
                 })
                 .body(|mut body| {
+                    if let Some((name, is_dir)) = &mut tab.state.add_entry {
+                        let mut close = false;
+                        body.row(18.0, |mut row| {
+                            row.set_selected(true);
+                            row.col(|ui| {
+                                let resp = TextEdit::singleline(name)
+                                    .return_key(Some(egui::KeyboardShortcut::new(
+                                        Modifiers::NONE,
+                                        Key::Enter,
+                                    )))
+                                    .cursor_at_end(true)
+                                    .desired_width(ui.available_width())
+                                    .show(ui);
+                                if resp.response.lost_focus()
+                                    && ui.input(|i| i.key_pressed(egui::Key::Enter))
+                                {
+                                    close = true;
+                                }
+                            });
+                            row.col(|ui| {});
+                            row.col(|ui| {});
+                        });
+                        if close {
+                            let path = Path::new(&tab.path).join(name);
+                            if *is_dir {
+                                let _ = std::fs::create_dir_all(path);
+                            } else {
+                                let _ = std::fs::File::create(path);
+                            }
+                            tab.state.add_entry = None;
+                        }
+                    }
+
                     for (i, entry) in entries.iter().enumerate() {
                         if tab.search.is_empty()
                             || entry
@@ -191,7 +224,12 @@ impl egui_dock::TabViewer for AppData {
                                 let action_entries: Vec<_> = if is_main {
                                     vec![tab.info.as_ref().unwrap()]
                                 } else {
-                                    entries.iter().enumerate().filter(|(i,x)| tab.selected_entries.contains(i)).map(|(i,x)|x).collect()
+                                    entries
+                                        .iter()
+                                        .enumerate()
+                                        .filter(|(i, x)| tab.selected_entries.contains(i))
+                                        .map(|(i, x)| x)
+                                        .collect()
                                 };
                                 resp.context_menu(|ui| {
                                     for action in self.actions.iter() {
@@ -214,7 +252,7 @@ impl egui_dock::TabViewer for AppData {
                 tab.refresh(new_path);
             }
         }
-    
+
         if tab.state.relead {
             tab.refresh_hard(tab.path.clone());
         }
