@@ -137,10 +137,13 @@ impl egui_dock::TabViewer for AppData {
                                     .cursor_at_end(true)
                                     .desired_width(ui.available_width())
                                     .show(ui);
+                                
                                 if resp.response.lost_focus()
                                     && ui.input(|i| i.key_pressed(egui::Key::Enter))
                                 {
                                     close = true;
+                                } else {
+                                    resp.response.request_focus();
                                 }
                             });
                             row.col(|ui| {});
@@ -153,6 +156,7 @@ impl egui_dock::TabViewer for AppData {
                             } else {
                                 let _ = std::fs::File::create(path);
                             }
+                            tab.state.relead = true;
                             tab.state.add_entry = None;
                         }
                     }
