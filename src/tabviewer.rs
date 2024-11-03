@@ -39,6 +39,8 @@ impl egui_dock::TabViewer for AppData {
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
+        tab.state.relead = false;
+
         if ui.input(|i| i.pointer.button_clicked(PointerButton::Extra1)) {
             // previous
             if !tab.previous_paths.is_empty() {
@@ -63,11 +65,11 @@ impl egui_dock::TabViewer for AppData {
                 let p = tab.path.clone();
                 let path = Path::new(&p);
                 if let Some(parent) = path.parent() {
-                    tab.new(parent.to_str().unwrap_or_default());
+                    tab.refresh(parent.to_str().unwrap_or_default());
                 }
             }
             if ui.button("⟳").clicked() {
-                tab.new(tab.path.clone());
+                tab.refresh_hard(tab.path.clone());
             }
             let search_width = 150.0;
             let resp = TextEdit::singleline(&mut tab.path)
@@ -80,7 +82,7 @@ impl egui_dock::TabViewer for AppData {
                 .show(ui);
 
             if resp.response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-                tab.new(tab.path.clone());
+                tab.refresh(tab.path.clone());
             }
 
             TextEdit::singleline(&mut tab.search)
@@ -185,18 +187,18 @@ impl egui_dock::TabViewer for AppData {
                                     tab.last_clicked_entry = Some(i);
                                 }
 
-                                
-                                let action_entries: Vec<_> = if tab.selected_entries.is_empty() {
+                                let is_main = tab.selected_entries.is_empty();
+                                let action_entries: Vec<_> = if is_main {
                                     vec![tab.info.as_ref().unwrap()]
                                 } else {
                                     entries.iter().enumerate().filter(|(i,x)| tab.selected_entries.contains(i)).map(|(i,x)|x).collect()
                                 };
                                 resp.context_menu(|ui| {
                                     for action in self.actions.iter() {
-                                        if (action.can_execute)(&action_entries) {
+                                        if (action.can_execute)(&action_entries, is_main) {
                                             if ui.button((action.name)(&action_entries)).clicked() {
                                                 for entry in action_entries.iter() {
-                                                    (action.execute)(&entry);
+                                                    (action.execute)(&entry, &mut tab.state);
                                                 }
                                                 ui.close_menu();
                                             }
@@ -209,8 +211,12 @@ impl egui_dock::TabViewer for AppData {
                 });
 
             if let Some(new_path) = new_path {
-                tab.new(new_path);
+                tab.refresh(new_path);
             }
+        }
+    
+        if tab.state.relead {
+            tab.refresh_hard(tab.path.clone());
         }
     }
 }

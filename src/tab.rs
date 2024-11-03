@@ -1,6 +1,6 @@
 use std::{collections::HashSet, io};
 
-use crate::files::{get_entries, get_meta, FileEntry};
+use crate::{actions::ActionState, files::{get_entries, get_meta, FileEntry}};
 
 #[derive(Debug)]
 pub struct Tab {
@@ -13,6 +13,7 @@ pub struct Tab {
     pub last_clicked_entry: Option<usize>,
     pub previous_paths: Vec<String>,
     pub previous_paths2: Vec<String>,
+    pub state: ActionState,
 }
 
 impl Tab {
@@ -30,10 +31,11 @@ impl Tab {
             previous_paths2: vec![],
             selected_entries: Default::default(),
             last_clicked_entry: None,
+            state: ActionState::default(),
         };
     }
 
-    pub fn new(&mut self, path: impl Into<String>) {
+    pub fn refresh(&mut self, path: impl Into<String>) {
         let path = path.into();
         if let Ok(i) = &self.info {
             if i.path == path {
@@ -41,6 +43,10 @@ impl Tab {
             }
         }
 
+        self.refresh_hard(path);
+    }
+
+    pub fn refresh_hard(&mut self, path: impl Into<String>) {
         let mut new = Self::new2(path, self.id);
         new.previous_paths.append(&mut self.previous_paths);
         new.previous_paths.push(self.path.clone());

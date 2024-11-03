@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, fs, io, path::Path};
+use std::{cmp::Ordering, fs, io, path::Path, sync::Arc};
 
 use chrono::{DateTime, Utc};
 
@@ -90,18 +90,24 @@ pub struct FileEntry {
     pub path: String,
     pub file_name: String,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Restriction {
     None,
     File,
     Folder,
+    Main,
+    Not(Box<Restriction>),
+    And(Box<Restriction>, Box<Restriction>),
 }
 impl FileEntry {
-    pub fn fullfills(&self, restriction : Restriction) -> bool {
+    pub fn fullfills(&self, restriction : &Restriction, is_main : bool) -> bool {
         match restriction {
             Restriction::None => true,
             Restriction::File => self.file_type.is_file(),
             Restriction::Folder => self.file_type.is_dir(),
+            Restriction::Main => is_main,
+            Restriction::Not(rec) => !self.fullfills(rec, is_main),
+            Restriction::And(a, b) => self.fullfills(a, is_main) && self.fullfills(b, is_main),
         }
     }
 }

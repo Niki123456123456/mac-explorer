@@ -70,7 +70,7 @@ impl eframe::App for App {
                     if resp.clicked() {
                         let tab = self.tabs.find_active_focused();
                         if let Some((rect, tab)) = tab {
-                            tab.new(favorite);
+                            tab.refresh(favorite);
                         }
                     }
                     resp.context_menu(|ui| {
