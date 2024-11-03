@@ -31,6 +31,12 @@ jobs:
                 use-cross: true
                 command: build
                 args: --verbose --release --target=${{ matrix.TARGET }}
+
+            - name: Install cargo-bundle
+              run: cargo install cargo-bundle
+
+            - name: Bundle the project
+              run: cargo bundle --release
         
             - name: Rename
               run: cp target/${{ matrix.TARGET }}/release/mac-explorer${{ matrix.EXTENSION }} mac-explorer-${{ matrix.TARGET }}${{ matrix.EXTENSION }}
