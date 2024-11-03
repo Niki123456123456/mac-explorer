@@ -90,3 +90,18 @@ pub struct FileEntry {
     pub path: String,
     pub file_name: String,
 }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Restriction {
+    None,
+    File,
+    Folder,
+}
+impl FileEntry {
+    pub fn fullfills(&self, restriction : Restriction) -> bool {
+        match restriction {
+            Restriction::None => true,
+            Restriction::File => self.file_type.is_file(),
+            Restriction::Folder => self.file_type.is_dir(),
+        }
+    }
+}

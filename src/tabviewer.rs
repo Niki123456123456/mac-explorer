@@ -1,5 +1,9 @@
-use crate::{files::bytes_to_human_readable, tab::Tab};
-use std::path::Path;
+use crate::{
+    actions::Action,
+    files::{bytes_to_human_readable, FileEntry},
+    tab::Tab,
+};
+use std::{borrow::Borrow, path::Path};
 
 use egui::{Key, Label, Modifiers, PointerButton, Sense, TextEdit, Widget};
 use egui_dock::{DockArea, DockState, NodeIndex, Style, SurfaceIndex, TabIndex};
@@ -12,6 +16,8 @@ pub struct AppData {
     pub favorites: Vec<String>,
     #[serde(skip)]
     pub added_nodes: Vec<(SurfaceIndex, NodeIndex)>,
+    #[serde(skip)]
+    pub actions: Vec<Action>,
 }
 
 impl egui_dock::TabViewer for AppData {
@@ -116,7 +122,7 @@ impl egui_dock::TabViewer for AppData {
                     });
                 })
                 .body(|mut body| {
-                    for (i, entry) in entries.iter_mut().enumerate() {
+                    for (i, entry) in entries.iter().enumerate() {
                         if tab.search.is_empty()
                             || entry
                                 .file_name
@@ -150,19 +156,17 @@ impl egui_dock::TabViewer for AppData {
                                 let command = ctx.input(|i| i.modifiers.command);
                                 let shift = ctx.input(|i| i.modifiers.shift);
                                 if resp.clicked() {
-                                    
                                     if shift {
-                                        if let Some(first) = tab.last_clicked_entry{
+                                        if let Some(first) = tab.last_clicked_entry {
                                             if first >= i {
                                                 for x in i..first {
                                                     tab.selected_entries.insert(x);
                                                 }
                                             } else {
-                                                for x in first+1..=i {
+                                                for x in first + 1..=i {
                                                     tab.selected_entries.insert(x);
                                                 }
                                             }
-                                            
                                         }
                                     } else if command {
                                         if tab.selected_entries.contains(&i) {
@@ -181,33 +185,22 @@ impl egui_dock::TabViewer for AppData {
                                     tab.last_clicked_entry = Some(i);
                                 }
 
+                                
+                                let action_entries: Vec<_> = if tab.selected_entries.is_empty() {
+                                    vec![tab.info.as_ref().unwrap()]
+                                } else {
+                                    entries.iter().enumerate().filter(|(i,x)| tab.selected_entries.contains(i)).map(|(i,x)|x).collect()
+                                };
                                 resp.context_menu(|ui| {
-                                    if ui.button("vscode").clicked() {
-                                        std::process::Command::new("code")
-                                            .arg(entry.path.clone())
-                                            .status();
-                                        ui.close_menu();
-                                    }
-                                    if ui.button("terminal").clicked() {
-                                        std::process::Command::new("open")
-                                            .arg("-a")
-                                            .arg("Terminal")
-                                            .arg(entry.path.clone())
-                                            .status();
-                                        ui.close_menu();
-                                    }
-                                    if ui.button("make executable").clicked() {
-                                        std::process::Command::new("chmod")
-                                            .arg("755")
-                                            .arg(entry.path.clone())
-                                            .status();
-                                        ui.close_menu();
-                                    }
-                                    if ui.button("zed").clicked() {
-                                        std::process::Command::new("zed")
-                                            .arg(entry.path.clone())
-                                            .status();
-                                        ui.close_menu();
+                                    for action in self.actions.iter() {
+                                        if (action.can_execute)(&action_entries) {
+                                            if ui.button((action.name)(&action_entries)).clicked() {
+                                                for entry in action_entries.iter() {
+                                                    (action.execute)(&entry);
+                                                }
+                                                ui.close_menu();
+                                            }
+                                        }
                                     }
                                 });
                             });
@@ -221,5 +214,3 @@ impl egui_dock::TabViewer for AppData {
         }
     }
 }
-
-

@@ -1,9 +1,9 @@
-use std::{path::Path};
+use std::path::Path;
 
-use egui::{Key, Label, Modifiers, PointerButton, Sense, TextEdit, Widget};
-use egui_dock::{DockArea, DockState, NodeIndex, Style, SurfaceIndex, TabIndex};
+use egui::{Label, Sense, Widget};
+use egui_dock::{DockArea, DockState, NodeIndex, Style, SurfaceIndex};
 
-use crate::{tab::Tab, tabviewer::AppData};
+use crate::{actions::actions, tab::Tab, tabviewer::AppData};
 
 
 
@@ -42,6 +42,7 @@ impl App {
         //app.tabs.set_active_tab((SurfaceIndex(0), NodeIndex(0), TabIndex(0)));
         app.tabs
             .set_focused_node_and_surface((SurfaceIndex(0), NodeIndex(0)));
+        app.data.actions = actions();
         return app;
     }
 }
