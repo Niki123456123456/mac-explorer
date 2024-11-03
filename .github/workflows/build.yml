@@ -37,7 +37,10 @@ jobs:
 
             - name: Bundle the project
               run: cargo bundle --release
-        
+
+            - name: Create ZIP archive
+              run: |
+                ditto -c -k --sequesterRsrc --keepParent target/release/bundle/osx/mac-explorer.app mac-explorer.zip        
             - name: Rename
               run: cp target/${{ matrix.TARGET }}/release/mac-explorer${{ matrix.EXTENSION }} mac-explorer-${{ matrix.TARGET }}${{ matrix.EXTENSION }}
         
@@ -52,6 +55,16 @@ jobs:
                 repo_token: ${{ secrets.GITHUB_TOKEN }}
                 file: mac-explorer-${{ matrix.TARGET }}${{ matrix.EXTENSION }}
                 asset_name: mac-explorer-${{ matrix.TARGET }}${{ matrix.EXTENSION }}
+                tag: ${{ github.ref }}
+                prerelease: ${{ !startsWith(github.ref, 'refs/tags/') }}
+                overwrite: true
+            
+            - uses: svenstaro/upload-release-action@v2
+              name: Upload bundle to release
+              with:
+                repo_token: ${{ secrets.GITHUB_TOKEN }}
+                file: mac-explorer.zip
+                asset_name: mac-explorer.zip
                 tag: ${{ github.ref }}
                 prerelease: ${{ !startsWith(github.ref, 'refs/tags/') }}
                 overwrite: true
