@@ -1,4 +1,8 @@
 pub mod app;
+pub mod actions;
+pub mod files;
+pub mod tab;
+pub mod tabviewer;
 
 fn main() {
     let native_options = eframe::NativeOptions {
