@@ -3,6 +3,7 @@ pub mod actions;
 pub mod files;
 pub mod tab;
 pub mod tabviewer;
+pub mod zip;
 
 fn main() {
     let native_options = eframe::NativeOptions {

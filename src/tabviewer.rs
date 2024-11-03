@@ -284,6 +284,74 @@ impl egui_dock::TabViewer for AppData {
             });
         }
 
+
+        if let Some(zip) = &mut tab.state.extract_zip_archive {
+            egui::Window::new("extract zip archive").default_width(ui.available_width()).show(ui.ctx(), |ui| {
+                ui.vertical(|ui| {
+                    ui.label(format!("source: {}", zip.source));
+                    ui.horizontal(|ui| {
+                        ui.label("target:");
+                        let resp = TextEdit::singleline(&mut zip.target)
+                            .return_key(Some(egui::KeyboardShortcut::new(
+                                Modifiers::NONE,
+                                Key::Enter,
+                            )))
+                            .cursor_at_end(true)
+                            .desired_width(ui.available_width())
+                            .show(ui);
+                        if resp.response.lost_focus()
+                            && ui.input(|i| i.key_pressed(egui::Key::Enter))
+                        {
+                            let contents = std::fs::read(zip.source.clone()).unwrap();
+                            let _ = zip_extract::extract(std::io::Cursor::new(contents),  Path::new(&zip.target), zip.strip_toplevel);
+                            tab.state.relead = true;
+                        }
+                    });
+                    ui.checkbox(&mut zip.strip_toplevel, "strip toplevel");
+                });
+            });
+            if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+                tab.state.extract_zip_archive = None;
+            }
+        }
+        if let Some(zip) = &mut tab.state.zip_dir {
+            egui::Window::new("create zip archive").default_width(ui.available_width()).show(ui.ctx(), |ui| {
+                ui.vertical(|ui| {
+                    ui.label(format!("source: {}", zip.source));
+                    ui.horizontal(|ui| {
+                        ui.label("target:");
+                        let resp = TextEdit::singleline(&mut zip.target)
+                            .return_key(Some(egui::KeyboardShortcut::new(
+                                Modifiers::NONE,
+                                Key::Enter,
+                            )))
+                            .cursor_at_end(true)
+                            .desired_width(ui.available_width())
+                            .show(ui);
+                        if resp.response.lost_focus()
+                            && ui.input(|i| i.key_pressed(egui::Key::Enter))
+                        {
+                            let _ = crate::zip::zip_dir(Path::new(&zip.source), Path::new(&zip.target), zip.method);
+                            tab.state.relead = true;
+                        }
+                    });
+                    egui::ComboBox::from_label("compression method")
+                    .selected_text(&zip.method.to_string())
+                    .show_ui(ui, |ui| {
+                        ui.selectable_value(&mut zip.method, zip::CompressionMethod::Stored, zip::CompressionMethod::Stored.to_string());
+                        ui.selectable_value(&mut zip.method, zip::CompressionMethod::Deflated, zip::CompressionMethod::Deflated.to_string());
+                        // ui.selectable_value(&mut zip.method, zip::CompressionMethod::Bzip2, zip::CompressionMethod::Bzip2.to_string());
+                        // ui.selectable_value(&mut zip.method, zip::CompressionMethod::Zstd, zip::CompressionMethod::Zstd.to_string());
+                        // ui.selectable_value(&mut zip.method, zip::CompressionMethod::Lzma, zip::CompressionMethod::Lzma.to_string());
+                        // ui.selectable_value(&mut zip.method, zip::CompressionMethod::Xz, zip::CompressionMethod::Xz.to_string());
+                    });
+                });
+            });
+            if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+                tab.state.zip_dir = None;
+            }
+        }
+
        
         if tab.state.relead {
             tab.refresh_hard(tab.path.clone());

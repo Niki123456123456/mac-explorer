@@ -9,11 +9,28 @@ impl<F> CanExecute for F where F: Fn(&Vec<&FileEntry>, bool) -> bool {}
 pub trait Execute: Fn(&FileEntry, &mut ActionState) {}
 impl<F> Execute for F where F: Fn(&FileEntry, &mut ActionState) {}
 
+
 #[derive(Default, Debug)]
 pub struct ActionState {
     pub relead: bool,
     pub add_entry : Option<(String, bool)>,
+    pub extract_zip_archive : Option<ExtractZipArchive>,
+    pub zip_dir : Option<ZipDir>,
 }
+#[derive(Debug)]
+pub struct ExtractZipArchive{
+    pub source : String,
+    pub target : String,
+    pub strip_toplevel : bool,
+}
+
+#[derive(Debug)]
+pub struct ZipDir{
+    pub source : String,
+    pub target : String,
+    pub method : zip::CompressionMethod,
+}
+
 
 pub struct Action {
     pub name: Box<dyn GetName>,
@@ -82,6 +99,12 @@ pub fn actions() -> Vec<Action> {
     }));
     actions.push(Action::constant("add dir", Restriction::Main, |e, s|{
         s.add_entry = Some(("".into(), true));
+    }));
+    actions.push(Action::new(|e| format!("extract zip archive"), |e, m| !m && e.len() == 1 && e[0].file_type.is_file() && e[0].file_name.ends_with(".zip"), |e, s|{
+        s.extract_zip_archive = Some(ExtractZipArchive { source: e.path.to_string(), target: e.path[..e.path.len()-4].to_string(), strip_toplevel: true })
+    }));
+    actions.push(Action::new(|e| format!("create zip archive"), |e, m| !m && e.len() == 1 && e[0].file_type.is_dir(), |e, s|{
+        s.zip_dir = Some(ZipDir { source: e.path.to_string(), target: format!("{}.zip", e.path), method: zip::CompressionMethod::Deflated })
     }));
     actions.push(Action::new(|e| format!("copy {}",e[0].file_name), |e, m| !m && e.len() == 1, |e, s|{
         let mut ctx: clipboard::ClipboardContext = clipboard::ClipboardProvider::new().unwrap();

@@ -20,3 +20,7 @@ eframe = { version = "0.29", default-features = false, features = [
 serde = { version = "1", features = ["derive"] }
 chrono = "0.4"
 clipboard = "0.5.0"
+walkdir = "2.5.0"
+anyhow = "1.0.92"
+zip = { version = "2.2.0", default-features = false, features = ["deflate"]}
+zip-extract = { version = "0.2.1", default-features = false}
