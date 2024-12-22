@@ -165,6 +165,51 @@ impl egui_dock::TabViewer for AppData {
                     }
 
                     for (i, entry) in entries.iter().enumerate() {
+                        if let Some(rename) = &mut tab.state.renaming {
+                            
+                            if rename.sourcePath == entry.path {
+                                let mut close = false;
+                                body.row(18.0, |mut row| {
+                                    row.set_selected(true);
+                                    row.col(|ui| {
+                                        let resp = TextEdit::singleline(&mut rename.newName)
+                                            .return_key(Some(egui::KeyboardShortcut::new(
+                                                Modifiers::NONE,
+                                                Key::Enter,
+                                            )))
+                                            .cursor_at_end(true)
+                                            .desired_width(ui.available_width())
+                                            .show(ui);
+
+                                        if resp.response.lost_focus()
+                                            && ui.input(|i| i.key_pressed(egui::Key::Enter))
+                                        {
+                                            close = true;
+                                        } else {
+                                            resp.response.request_focus();
+                                        }
+                                    });
+                                    row.col(|ui| {
+                                        ui.label(
+                                            entry.modified.format("%d/%m/%Y %H:%M").to_string(),
+                                        );
+                                    });
+                                    row.col(|ui| {
+                                        if entry.file_type.is_file() {
+                                            ui.label(bytes_to_human_readable(entry.len));
+                                        }
+                                    });
+                                });
+                                if close {
+                                    if rename.newName != entry.file_name {
+                                       let _ = std::fs::rename(&rename.sourcePath,  Path::new(&tab.info.as_ref().unwrap().path).join(&rename.newName));
+                                    }
+                                    tab.state.renaming = None;
+                                }
+                                continue;
+                            }
+                        }
+
                         if tab.search.is_empty()
                             || entry
                                 .file_name
@@ -251,14 +296,18 @@ impl egui_dock::TabViewer for AppData {
                                     }
                                 });
                                 if resp.contains_pointer()
-                                    && ctx.input(|i| i.pointer.primary_pressed()) && !entries.is_empty()
+                                    && ctx.input(|i| i.pointer.primary_pressed())
+                                    && !entries.is_empty()
                                 {
-                                    self.drag_paths = Some((tab.path.to_string(),
+                                    self.drag_paths = Some((
+                                        tab.path.to_string(),
                                         entries
                                             .iter()
                                             .enumerate()
                                             .filter(|(i, x)| tab.selected_entries.contains(i))
-                                            .map(|(i, x)| (x.path.to_string(), x.file_name.to_string()))
+                                            .map(|(i, x)| {
+                                                (x.path.to_string(), x.file_name.to_string())
+                                            })
                                             .collect(),
                                     ));
                                     //println!("drag");

@@ -16,6 +16,7 @@ pub struct ActionState {
     pub add_entry : Option<(String, bool)>,
     pub extract_zip_archive : Option<ExtractZipArchive>,
     pub zip_dir : Option<ZipDir>,
+    pub renaming : Option<Renaming>,
 }
 #[derive(Debug)]
 pub struct ExtractZipArchive{
@@ -29,6 +30,12 @@ pub struct ZipDir{
     pub source : String,
     pub target : String,
     pub method : zip::CompressionMethod,
+}
+
+#[derive(Debug)]
+pub struct Renaming{
+    pub sourcePath : String,
+    pub newName : String,
 }
 
 
@@ -99,6 +106,9 @@ pub fn actions() -> Vec<Action> {
     }));
     actions.push(Action::constant("add dir", Restriction::Main, |e, s|{
         s.add_entry = Some(("".into(), true));
+    }));
+    actions.push(Action::constant("rename", Restriction::Not(Box::new(Restriction::Main)), |e, s|{
+       s.renaming = Some(Renaming { sourcePath: e.path.to_string(), newName:e.file_name.to_string() })
     }));
     actions.push(Action::new(|e| format!("extract zip archive"), |e, m| !m && e.len() == 1 && e[0].file_type.is_file() && e[0].file_name.ends_with(".zip"), |e, s|{
         s.extract_zip_archive = Some(ExtractZipArchive { source: e.path.to_string(), target: e.path[..e.path.len()-4].to_string(), strip_toplevel: true })
