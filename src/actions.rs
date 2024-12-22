@@ -34,8 +34,9 @@ pub struct ZipDir{
 
 #[derive(Debug)]
 pub struct Renaming{
-    pub sourcePath : String,
-    pub newName : String,
+    pub source_path : String,
+    pub new_name : String,
+    pub duplicate : bool,
 }
 
 
@@ -108,8 +109,11 @@ pub fn actions() -> Vec<Action> {
         s.add_entry = Some(("".into(), true));
     }));
     actions.push(Action::constant("rename", Restriction::Not(Box::new(Restriction::Main)), |e, s|{
-       s.renaming = Some(Renaming { sourcePath: e.path.to_string(), newName:e.file_name.to_string() })
+       s.renaming = Some(Renaming { source_path: e.path.to_string(), new_name:e.file_name.to_string(), duplicate: false })
     }));
+    actions.push(Action::constant("duplicate", Restriction::Not(Box::new(Restriction::Main)), |e, s|{
+        s.renaming = Some(Renaming { source_path: e.path.to_string(), new_name:e.file_name.to_string(), duplicate: true })
+     }));
     actions.push(Action::new(|e| format!("extract zip archive"), |e, m| !m && e.len() == 1 && e[0].file_type.is_file() && e[0].file_name.ends_with(".zip"), |e, s|{
         s.extract_zip_archive = Some(ExtractZipArchive { source: e.path.to_string(), target: e.path[..e.path.len()-4].to_string(), strip_toplevel: true })
     }));

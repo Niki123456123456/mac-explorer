@@ -1,6 +1,6 @@
 use crate::{
     actions::Action,
-    files::{bytes_to_human_readable, FileEntry},
+    files::{self, bytes_to_human_readable, FileEntry},
     tab::Tab,
 };
 use std::{borrow::Borrow, path::Path};
@@ -167,12 +167,12 @@ impl egui_dock::TabViewer for AppData {
                     for (i, entry) in entries.iter().enumerate() {
                         if let Some(rename) = &mut tab.state.renaming {
                             
-                            if rename.sourcePath == entry.path {
+                            if rename.source_path == entry.path {
                                 let mut close = false;
                                 body.row(18.0, |mut row| {
                                     row.set_selected(true);
                                     row.col(|ui| {
-                                        let resp = TextEdit::singleline(&mut rename.newName)
+                                        let resp = TextEdit::singleline(&mut rename.new_name)
                                             .return_key(Some(egui::KeyboardShortcut::new(
                                                 Modifiers::NONE,
                                                 Key::Enter,
@@ -201,8 +201,20 @@ impl egui_dock::TabViewer for AppData {
                                     });
                                 });
                                 if close {
-                                    if rename.newName != entry.file_name {
-                                       let _ = std::fs::rename(&rename.sourcePath,  Path::new(&tab.info.as_ref().unwrap().path).join(&rename.newName));
+                                    if rename.new_name != entry.file_name {
+                                        let source =Path::new(&rename.source_path);
+                                        let target =Path::new(&tab.info.as_ref().unwrap().path).join(&rename.new_name);
+                                        if rename.duplicate {
+                                            if entry.file_type.is_file() {
+                                                let _ = std::fs::copy(&source,  &target);
+                                            } else
+                                            if entry.file_type.is_dir() {
+                                                let _ = files::copy_dir(&source, &target);
+                                            }
+                                        } else {
+                                            let _ = std::fs::rename(&source,  &target);
+                                        }
+                                       
                                     }
                                     tab.state.renaming = None;
                                 }

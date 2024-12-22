@@ -111,3 +111,29 @@ impl FileEntry {
         }
     }
 }
+
+pub fn copy_dir(src: &Path, dst: &Path) -> io::Result<()> {
+    // Create the destination directory if it doesn't exist
+    if !dst.exists() {
+        fs::create_dir_all(dst)?;
+    }
+
+    // Read the entries within the source directory
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let file_type = entry.file_type()?;
+        let src_path = entry.path();
+        let dst_path = dst.join(entry.file_name());
+
+        // If it's a directory, recurse into it
+        if file_type.is_dir() {
+            copy_dir(&src_path, &dst_path)?;
+        }
+        // Otherwise, copy the file
+        else {
+            fs::copy(&src_path, &dst_path)?;
+        }
+    }
+
+    Ok(())
+}
