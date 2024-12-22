@@ -216,6 +216,7 @@ impl egui_dock::TabViewer for AppData {
                                         }
                                        
                                     }
+                                    tab.state.relead = true;
                                     tab.state.renaming = None;
                                 }
                                 continue;
