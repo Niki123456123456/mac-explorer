@@ -48,7 +48,7 @@ impl egui_dock::TabViewer for AppData {
             // previous
             if !tab.previous_paths.is_empty() {
                 let last = tab.previous_paths.remove(tab.previous_paths.len() - 1);
-                let mut new = Tab::new2(last.clone(), tab.id);
+                let mut new = Tab::new(last.clone(), tab.id);
                 new.previous_paths.append(&mut tab.previous_paths);
                 new.previous_paths2.append(&mut tab.previous_paths2);
                 new.previous_paths2.push(last);

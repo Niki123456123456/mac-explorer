@@ -17,7 +17,7 @@ pub struct Tab {
 }
 
 impl Tab {
-    pub fn new2(path: impl Into<String>, id: egui::Id) -> Self {
+    pub fn new(path: impl Into<String>, id: egui::Id) -> Self {
         let path = path.into();
         let info = get_meta(&path);
         let entries = get_entries(&path);
@@ -47,7 +47,7 @@ impl Tab {
     }
 
     pub fn refresh_hard(&mut self, path: impl Into<String>) {
-        let mut new = Self::new2(path, self.id);
+        let mut new = Self::new(path, self.id);
         new.previous_paths.append(&mut self.previous_paths);
         new.previous_paths.push(self.path.clone());
         *self = new;

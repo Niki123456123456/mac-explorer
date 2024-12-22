@@ -4,7 +4,7 @@ use egui::{Label, Sense, Widget};
 use egui_dock::{DockArea, DockState, NodeIndex, Style, SurfaceIndex};
 use serde::de;
 
-use crate::{actions::actions, tab::Tab, tabviewer::AppData};
+use crate::{actions::actions, files, tab::Tab, tabviewer::AppData};
 
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)]
@@ -33,7 +33,7 @@ impl App {
             Default::default()
         };
 
-        app.tabs = DockState::new(vec![Tab::new2(
+        app.tabs = DockState::new(vec![Tab::new(
             app.data.favorites.first().unwrap_or(&"/".to_string()),
             egui::Id::new(app.latest_tab_id),
         )]);
@@ -52,6 +52,15 @@ impl eframe::App for App {
     }
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        if self.tabs.iter_all_tabs().count() == 0 {
+            self.tabs = DockState::new(vec![Tab::new(
+                self.data.favorites.first().unwrap_or(&"/".to_string()),
+                egui::Id::new(self.latest_tab_id),
+            )]);
+            self.tabs
+            .set_focused_node_and_surface((SurfaceIndex(0), NodeIndex(0)));
+        }
+
         egui::SidePanel::left("favorites_tab").show(ctx, |ui| {
             ui.vertical(|ui| {
                 ui.heading("favorites");
@@ -102,7 +111,7 @@ impl eframe::App for App {
             self.latest_tab_id += 1;
             self.data.added_nodes.drain(..).for_each(|(surface, node)| {
                 self.tabs.set_focused_node_and_surface((surface, node));
-                self.tabs.push_to_focused_leaf(Tab::new2(
+                self.tabs.push_to_focused_leaf(Tab::new(
                     self.data.favorites.first().unwrap_or(&"/".to_string()),
                     egui::Id::new(self.latest_tab_id),
                 ));
@@ -114,16 +123,20 @@ impl eframe::App for App {
                 if source_path != dest_path {
                     let command = ctx.input(|i| i.modifiers.command);
                     for (path, file_name) in files.iter() {
+                        let target = Path::new(dest_path).join(file_name);
                         if command {
-                            let _ = fs::copy(path, Path::new(dest_path).join(file_name));
+                            if Path::new(path).is_dir() {
+                                let _ = files::copy_dir(Path::new(path), &target);
+                            } else {
+                                let _ = fs::copy(path, Path::new(dest_path).join(file_name));
+                            }
+                            
                         } else {
                             let _ = fs::rename(path, Path::new(dest_path).join(file_name));
                         }
-                        
-                        //println!("move {:?} {:?} {:?} ", path, Path::new(dest_path).join(file_name), result);
                     }
                 }
-                for ((_,_), tab) in self.tabs.iter_all_tabs_mut() {
+                for ((_, _), tab) in self.tabs.iter_all_tabs_mut() {
                     tab.refresh_hard(tab.path.clone());
                 }
                 self.data.drag_paths = None;
