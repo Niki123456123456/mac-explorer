@@ -178,6 +178,11 @@ pub fn actions() -> Vec<Action> {
         Restriction::None,
     ));
     actions.push(Action::open_with(
+        "Google Chrome",
+        "chrome",
+        Restriction::File,
+    ));
+    actions.push(Action::open_with(
         "Terminal",
         "terminal",
         Restriction::Folder,

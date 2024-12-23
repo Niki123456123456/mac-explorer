@@ -33,9 +33,9 @@ fn show_sorting_header(
     header.col(|ui| {
         let after = if sorting.column == column {
             if sorting.reverse {
-                " ⬆"
+                " ⬇"
             } else {
-                " ▼"
+                " ⬆"
             }
         } else {
             ""
@@ -97,8 +97,8 @@ impl egui_dock::TabViewer for AppData {
                     self.favorites.push(tab.path.clone());
                 }
             }
-            if ui.button("←").clicked() {}
-            if ui.button("→").clicked() {}
+            if ui.button("⬅").clicked() {}
+            if ui.button("➡").clicked() {}
             if ui.button("⬆").clicked() {
                 let p = tab.path.clone();
                 let path = Path::new(&p);
