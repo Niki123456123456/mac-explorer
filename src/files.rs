@@ -2,6 +2,8 @@ use std::{cmp::Ordering, fs, io, path::Path, sync::Arc};
 
 use chrono::{DateTime, Utc};
 
+use crate::tab::TabSorting;
+
 
 pub fn get_meta(path: &str) -> io::Result<FileEntry> {
     let p = Path::new(path);
@@ -59,6 +61,34 @@ pub fn get_entries(path: &str) -> io::Result<Vec<FileEntry>> {
         return type_ord;
     });
     Ok(files)
+}
+
+pub fn sort(files : &mut Vec<FileEntry>, sorting : &TabSorting){
+    files.sort_by(|a1, b1| {
+        let mut a = a1;
+        let mut b = b1;
+        if sorting.reverse {
+            a = b1;
+            b = a1;
+        }
+
+        let type_ord = a.file_type.is_file().cmp(&b.file_type.is_file());
+        if type_ord == Ordering::Equal {
+            match sorting.column {
+                crate::tab::SortingColumn::Filename => {
+                    return a.file_name.cmp(&b.file_name);
+                },
+                crate::tab::SortingColumn::Date => {
+                    return a.modified.cmp(&b.modified);
+                },
+                crate::tab::SortingColumn::Size => {
+                    return a.len.cmp(&b.len);
+                },
+            }
+            
+        }
+        return type_ord;
+    });
 }
 
 pub fn bytes_to_human_readable(bytes: u64) -> String {

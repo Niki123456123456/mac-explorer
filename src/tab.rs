@@ -14,6 +14,19 @@ pub struct Tab {
     pub previous_paths: Vec<String>,
     pub previous_paths2: Vec<String>,
     pub state: ActionState,
+    pub sorting : TabSorting,
+}
+#[derive(Debug)]
+pub struct TabSorting{
+    pub reverse: bool,
+    pub column : SortingColumn,
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum SortingColumn {
+    Filename,
+    Date,
+    Size
 }
 
 impl Tab {
@@ -32,6 +45,7 @@ impl Tab {
             selected_entries: Default::default(),
             last_clicked_entry: None,
             state: ActionState::default(),
+            sorting: TabSorting { reverse: false, column: SortingColumn::Filename },
         };
     }
 
